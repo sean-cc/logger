@@ -133,7 +133,6 @@ new Logger(dbPath)
 ### 4.2 日志记录方法 / Logging Methods
 
 ```javascript
-logger.log(level, message, meta)
 logger.info(message, meta)
 logger.warn(message, meta)
 logger.error(message, meta)
