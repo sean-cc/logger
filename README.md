@@ -14,6 +14,8 @@ This is a lightweight logging module based on Node.js and SQLite with the follow
 - Supports log backup and database space release
 - 使用SQLite数据库存储，无需额外的数据库服务
 - Uses SQLite database storage, no additional database service required
+- 支持会话ID功能，可按会话查询日志
+- Supports session ID functionality for querying logs by session
 
 ## 2. 安装方法 / Installation
 
@@ -114,7 +116,36 @@ console.log('备份日志数量:', backupResult.backedUpCount);
 console.log('删除日志数量:', backupResult.deletedCount);
 ```
 
-### 3.6 关闭数据库连接 / Close Database Connection
+### 3.6 会话ID功能 / Session ID Functionality
+
+```javascript
+// 获取当前会话ID
+// Get current session ID
+const sessionId = logger.getSessionId();
+console.log('当前会话ID:', sessionId);
+
+// 设置新的会话ID
+// Set new session ID
+const newSessionId = logger.setSessionId();
+console.log('新会话ID:', newSessionId);
+
+// 或者使用自定义会话ID
+// Or use custom session ID
+logger.setSessionId('custom-session-id-123');
+
+// 按会话ID查询日志
+// Query logs by session ID
+const sessionLogs = await logger.query({
+  sessionId: sessionId,
+  limit: 10
+});
+
+sessionLogs.forEach(log => {
+  console.log(`${log.timestamp} [${log.level}] ${log.message} (会话ID: ${log.session_id})`);
+});
+```
+
+### 3.7 关闭数据库连接 / Close Database Connection
 
 ```javascript
 await logger.close();
@@ -133,6 +164,7 @@ new Logger(dbPath)
 ### 4.2 日志记录方法 / Logging Methods
 
 ```javascript
+logger.log(level, message, meta)
 logger.info(message, meta)
 logger.warn(message, meta)
 logger.error(message, meta)
@@ -195,7 +227,27 @@ logger.vacuumDatabase()
 - 返回: Promise 对象
 - Returns: Promise object
 
-### 4.6 关闭数据库连接 / Close Database Connection
+### 4.6 会话ID管理方法 / Session ID Management Methods
+
+```javascript
+// 获取当前会话ID
+// Get current session ID
+logger.getSessionId()
+```
+- 返回: 当前会话ID (string)
+- Returns: Current session ID (string)
+
+```javascript
+// 设置新的会话ID
+// Set new session ID
+logger.setSessionId(sessionId)
+```
+- `sessionId` (可选): 自定义会话ID，如果不提供则自动生成
+- `sessionId` (optional): Custom session ID, automatically generated if not provided
+- 返回: 新的会话ID (string)
+- Returns: New session ID (string)
+
+### 4.7 关闭数据库连接 / Close Database Connection
 
 ```javascript
 logger.close()

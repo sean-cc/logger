@@ -2,6 +2,15 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
+// 生成唯一会话ID的函数
+function generateSessionId() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 class Logger {
   constructor(dbPath = path.join(__dirname, 'logs.db')) {
     this.db = new sqlite3.Database(dbPath, (err) => {
@@ -12,6 +21,8 @@ class Logger {
         this.initTable();
       }
     });
+    // 初始化会话ID
+    this.sessionId = generateSessionId();
   }
 
   initTable() {
@@ -21,7 +32,8 @@ class Logger {
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         level TEXT,
         message TEXT,
-        meta TEXT
+        meta TEXT,
+        session_id TEXT
       );
     `;
 
@@ -32,14 +44,25 @@ class Logger {
     });
   }
 
+  // 设置新的会话ID
+  setSessionId(sessionId = null) {
+    this.sessionId = sessionId || generateSessionId();
+    return this.sessionId;
+  }
+
+  // 获取当前会话ID
+  getSessionId() {
+    return this.sessionId;
+  }
+
   log(level, message, meta = {}) {
     return new Promise((resolve, reject) => {
-      const sql = 'INSERT INTO logs (level, message, meta) VALUES (?, ?, ?)';
-      this.db.run(sql, [level, message, JSON.stringify(meta)], function(err) {
+      const sql = 'INSERT INTO logs (level, message, meta, session_id) VALUES (?, ?, ?, ?)';
+      this.db.run(sql, [level, message, JSON.stringify(meta), this.sessionId], function(err) {
         if (err) {
           reject(err);
         } else {
-          resolve({ id: this.lastID });
+          resolve({ id: this.lastID, sessionId: this.sessionId });
         }
       });
     });
@@ -79,6 +102,12 @@ class Logger {
       if (options.endTime) {
         sql += ' AND timestamp <= ?';
         params.push(options.endTime);
+      }
+
+      // 按会话ID查询
+      if (options.sessionId) {
+        sql += ' AND session_id = ?';
+        params.push(options.sessionId);
       }
 
       // 处理元数据查询条件
